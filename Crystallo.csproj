@@ -14,6 +14,21 @@
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -106,6 +121,62 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="logo.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\bonus-book.png" />
+    <Resource Include="assets\bonus-coins.png" />
+    <Resource Include="assets\bonus-crown.png" />
+    <Resource Include="assets\bonus-drinks.png" />
+    <Resource Include="assets\bonus-helmet.png" />
+    <Resource Include="assets\bonus-necklace.png" />
+    <Resource Include="assets\bonus-shield.png" />
+    <Resource Include="assets\bonus-sword.png" />
+    <Resource Include="assets\bonus-wand.png" />
+    <Resource Include="assets\card-back.png" />
+    <Resource Include="assets\creature-dragon1.png" />
+    <Resource Include="assets\creature-dragon2.png" />
+    <Resource Include="assets\creature-faerie.png" />
+    <Resource Include="assets\creature-firefox.png" />
+    <Resource Include="assets\creature-icewolf.png" />
+    <Resource Include="assets\creature-phoenix.png" />
+    <Resource Include="assets\creature-seahorse.png" />
+    <Resource Include="assets\creature-unicorn.png" />
+    <Resource Include="assets\crystal-orange1.png" />
+    <Resource Include="assets\crystal-orange2.png" />
+    <Resource Include="assets\crystal-orange3.png" />
+    <Resource Include="assets\crystal-purple1.png" />
+    <Resource Include="assets\crystal-purple2.png" />
+    <Resource Include="assets\crystal-purple3.png" />
+    <Resource Include="assets\crystal-red1.png" />
+    <Resource Include="assets\crystal-red2.png" />
+    <Resource Include="assets\crystal-red3.png" />
+    <Resource Include="assets\info-bonuses.png" />
+    <Resource Include="assets\info-key.png" />
+    <Resource Include="assets\logo.png" />
+    <Resource Include="assets\orb-faerie.png" />
+    <Resource Include="assets\orb-firefox.png" />
+    <Resource Include="assets\orb-icewolf.png" />
+    <Resource Include="assets\orb-phoenix.png" />
+    <Resource Include="assets\orb-seahorse.png" />
+    <Resource Include="assets\orb-unicorn.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="assets\cards.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

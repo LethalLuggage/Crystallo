@@ -5,13 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Crystallo"
         mc:Ignorable="d"
-        Title="Crystallo" Height="1000" Width="1400" UIElement.MouseWheel="RotateByMouseWheel">
+        Title="Crystallo" Height="1000" Width="1400" >
     <StackPanel Margin="0">
-        <Grid Height="900" Width="1350" x:Name="CanvasBag" UIElement.PreviewMouseDown="PlaceCard" UIElement.MouseMove="MovePreview" UIElement.MouseLeave="CanvasBag_MouseLeave" Background="LightYellow">
+        <Grid Height="900" Width="1350" x:Name="Gameboard" UIElement.MouseWheel="RotateByMouseWheel" UIElement.PreviewMouseDown="PlaceCard" UIElement.MouseMove="MovePreview" UIElement.MouseLeave="HidePreview" Background="LightYellow">
             <!--Row and Column Definitions defined in source code for variability.-->
         </Grid>
         <!--<Canvas x:Name="CanvasBag" UIElement.PreviewMouseDown="PlaceCard" UIElement.MouseMove="MovePreview" UIElement.MouseLeave="CanvasBag_MouseLeave" Background="White" Margin="0,0,0,0" Height="700">
         </Canvas>-->
-        
     </StackPanel>
 </Window>
