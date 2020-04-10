@@ -19,28 +19,44 @@ namespace Crystallo
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class CrystalloWindow : Window
     {
         public static int GRIDSIZE = 50;
-        public int cardHeight { get; set; }
-        public int cardWidth { get; set; }
-        private List<Card> Deck;
-        private Card nextCard;
+        private static string[] _orbs = { "phoenix", "firefox", "icewolf", "seahorse", "faerie", "unicorn" };
+        private static string[] _crystals = { "red1", "red2", "red3", "orange1", "orange2", "orange3", "purple1", "purple2", "purple3" };
+        private bool IsVert { get => cardAngle % 180 == 0; }
+        public int CardHeight { get => GRIDSIZE * 3; }
+        public int CardWidth { get => GRIDSIZE * 2; }
+        public int NumCardsLeft { get => deck.Count(); }
+
+        private List<Card> deck;
+        private List<Card> discard;
+        private List<Card> dragonDeck;
+        private Card _nextCard;
+        private Card _previewCard;
+        private Card PreviewCard { get => _previewCard ?? new Card(_nextCard); }
         private int cardAngle;
-        private bool isVert
+        private readonly Random random;
+        private GameboardCell[][] GameboardModel;
+
+        private struct GameboardCell
         {
-            get
+            string _rawcontent;
+            public int _cardid;
+            public string _type => _orbs.Contains(_rawcontent) ? "orb" : _crystals.Contains(_rawcontent) ? "crystal" : "blank";
+            public string _color => _type == "crystal" ? _rawcontent.Substring(0, _rawcontent.Length - 1) : _rawcontent;
+            public int _crystalnum => _type == "crystal" ? _rawcontent.Last()-'0' : 0;
+
+            public GameboardCell(string content, int id)
             {
-                return cardAngle % 180 == 0;
+                _rawcontent = content;
+                _cardid = id;
             }
         }
 
-        private Random rando;
-        public MainWindow()
+        public CrystalloWindow()
         {
-            rando = new Random();
-            cardHeight = GRIDSIZE * 3;
-            cardWidth = GRIDSIZE * 2;
+            random = new Random();
             cardAngle = 0;
 
             DataContext = this;
@@ -48,27 +64,49 @@ namespace Crystallo
 
             Gameboard.ShowGridLines = true;
 
-            BuildDeck();
+            BuildDecks();
             BuildGrid();
             SelectNewCard();
-            Gameboard.Children.Add(nextCard);
+            Gameboard.Children.Add(_nextCard);
         }
 
         /// <summary>
         /// Read in the deck of cards from a text file and create a <see cref="Card"/> for each.
+        /// Add all cards to <see cref="deck"/>, then shuffle, and remove 9 and place them
+        /// in <see cref="dragonDeck"/>.
         /// </summary>
-        private void BuildDeck()
+        private void BuildDecks()
         {
-            Deck = new List<Card>();
+            deck = new List<Card>();
+            int id = 0;
 
             using (StreamReader r = File.OpenText("/Shal/source/repos/Crystallo/assets/cards.txt"))
             {
                 while (!r.EndOfStream)
                 {
                     string[] cardString = r.ReadLine().Split(',');
-                    Deck.Add(new Card(cardHeight, cardWidth,
-                        cardString[0], cardString[1], cardString[2], cardString[3], cardString[4]));
+                    deck.Add(new Card(id, cardString[0], cardString[1], cardString[2], cardString[3], cardString[4]));
+                    id++;
                 }
+            }
+
+            Shuffle(deck);
+
+            discard = new List<Card>();
+            dragonDeck = deck.GetRange(0, 9);
+            deck.RemoveRange(0, 9);
+        }
+
+        /// <summary>
+        /// Shuffles the given deck in place using Durstenfeld Shuffle.
+        /// </summary>
+        /// <param name="deck">The deck to shuffle.</param>
+        private void Shuffle(List<Card> deck)
+        {
+            for (int i = 0; i < deck.Count() - 1; i++)
+            {
+                int j = random.Next(i, deck.Count());
+                (deck[i], deck[j]) = (deck[j], deck[i]);
             }
         }
 
@@ -80,6 +118,7 @@ namespace Crystallo
         {
             int numCols = (int)Gameboard.Width / GRIDSIZE;
             int numRows = (int)Gameboard.Height / GRIDSIZE;
+            // define rows and columns within the grid panel
             for(int r=0; r<numRows; r++)
             {
                 Gameboard.RowDefinitions.Add(new RowDefinition { Height = new GridLength(GRIDSIZE) });
@@ -88,20 +127,28 @@ namespace Crystallo
             {
                 Gameboard.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(GRIDSIZE) });
             }
+            // define board model
+            GameboardModel = new GameboardCell[numRows][];
+            for(int r=0; r< numRows; r++)
+            {
+                GameboardModel[r] = new GameboardCell[numCols];
+            }
         }
 
         /// <summary>
-        /// Gets a new card and assigns it to <see cref="nextCard"/>.
+        /// Gets a new card and assigns it to <see cref="_nextCard"/>.
         /// </summary>
         private void SelectNewCard()
         {
-            if (Deck.Count() == 0)
+            if (deck.Count() == 0)
             {
                 MessageBox.Show("All out of cards!");
                 return;
             }
-            nextCard = Deck[rando.Next(Deck.Count())];
-            Deck.Remove(nextCard);
+            _nextCard = deck[random.Next(deck.Count())];
+            cardAngle = 0;
+            deck.Remove(_nextCard);
+            discard.Add(_nextCard);
         }
 
         /// <summary>
@@ -131,14 +178,157 @@ namespace Crystallo
                 return;
             }
 
-            Gameboard.Children.Remove(nextCard);
-            UpdateCardPosition(nextCard, R, C);
-            Gameboard.Children.Add(nextCard);
+            Gameboard.Children.Remove(_nextCard);
+            InsertIntoModel(_nextCard);
+            CheckForMatch(_nextCard);
+            UpdateCardPosition(_nextCard, R, C);
+            Gameboard.Children.Add(_nextCard);
 
-            (int oldR, int oldC) = (Grid.GetRow(nextCard), Grid.GetColumn(nextCard));
+            (int oldR, int oldC) = (Grid.GetRow(_nextCard), Grid.GetColumn(_nextCard));
             SelectNewCard();
-            UpdateCardPosition(nextCard, oldR, oldC);
-            Gameboard.Children.Add(nextCard);
+            UpdateCardPosition(_nextCard, oldR, oldC);
+
+            PreviewPane.Children.Remove(PreviewCard);
+            _previewCard = null;
+            PreviewPane.Children.Add(PreviewCard);
+            Gameboard.Children.Add(_nextCard);
+        }
+
+        private void CheckForMatch(Card crd)
+        {
+            int r = Grid.GetRow(crd);
+            int c = Grid.GetColumn(crd);
+            int r_limit = GameboardModel.Count();
+            int c_limit = GameboardModel[0].Count();
+
+            (int[] rows, int[] columns) = IsVert
+                ? (new int[] { r - 1, r + 2 }, new int[] { c - 1, c, c + 1 })
+                : (new int[] { r - 1, r, r + 1 }, new int[] { c - 1, c + 2 });
+
+            bool matchFound;
+            string orbFound;
+            foreach(int row in rows)
+            {
+                if (row < 0 || row > r_limit - 1) continue;
+                foreach (int col in columns)
+                {
+                    if (col < 0 || col > c_limit - 1) continue;
+                    (matchFound, orbFound) = CheckMatch(row, col);
+                    if (matchFound)
+                    {
+                        Console.WriteLine("Found a match at row " + row + " column " + col + ": " + orbFound);
+                    }
+                }
+                
+            }
+        }
+
+        private (bool, string) CheckMatch(int r, int c)
+        {
+            GameboardCell[] cells = new GameboardCell[]{ GameboardModel[r][c], GameboardModel[r + 1][c], GameboardModel[r+1][c+1], GameboardModel[r][c+1] };
+            int num_orbs = 0;
+            int num_crys = 0;
+            string orb_name = "";
+            HashSet<string> colors = new HashSet<string>();
+            HashSet<int> numbers = new HashSet<int>();
+            foreach(GameboardCell cell in cells)
+            {
+                if (cell._type == "orb")
+                {
+                    num_orbs++;
+                    orb_name = cell._color;
+                }
+                if (cell._type == "crystal")
+                {
+                    num_crys++;
+                    colors.Add(cell._color);
+                    numbers.Add(cell._crystalnum);
+                }
+            }
+
+            if(num_orbs == 1 && num_crys == 3
+                && (colors.Count() == 1 || colors.Count() == 3)
+                && (numbers.Count() == 1 || numbers.Count() == 3))
+            {
+                return (true, orb_name);
+            }
+            else
+            {
+                return (false, "blank");
+            }
+        }
+
+        private void InsertIntoModel(Card crd)
+        {
+            int r = Grid.GetRow(crd);
+            int c = Grid.GetColumn(crd);
+
+            string[] contents = crd.GetContents();
+            GameboardCell[] cells = new GameboardCell[4];
+            for(int i=0; i<4; i++)
+            {
+                cells[i] = new GameboardCell(contents[i], crd.CardID);
+            }
+
+            int arrayOffset = 0;
+            switch (cardAngle)
+            {
+                case 90:
+                    arrayOffset = 3;
+                    break;
+                case 180:
+                    arrayOffset = 2;
+                    break;
+                case 270:
+                    arrayOffset = 1;
+                    break;
+            }
+
+
+            (int rSpan, int cSpan) = IsVert ? (3, 2) : (2, 3);
+            
+            for(int ri = 0; ri < rSpan; ri++)
+            {
+                for(int ci = 0; ci < cSpan; ci++)
+                {
+                    if((ri == 0 || ri == rSpan - 1)
+                        && (ci == 0 || ci == cSpan - 1))
+                    {
+                        int index;
+                        if (ri == 0 && ci == cSpan - 1)
+                            index = 1;  // top right
+                        else if (ri == rSpan - 1 && ci == cSpan - 1)
+                            index = 2; // bottom right
+                        else if (ri == rSpan - 1 && ci == 0)
+                            index = 3; // bottom left
+                        else
+                            index = 0; // top left
+
+                        GameboardModel[r + ri][c + ci] = new GameboardCell(contents[(index+arrayOffset) % 4], crd.CardID);
+                    }
+                    else
+                    {
+                        GameboardModel[r + ri][c + ci] = new GameboardCell("blank", crd.CardID);
+                    }
+                    
+                }
+            }
+            /*
+            GameboardModel[r][c] = cells[(0 + arrayOffset) % 4];
+            GameboardModel[r][c + cSpan] = cells[(1 + arrayOffset) % 4];
+            GameboardModel[r + rSpan][c + cSpan] = cells[(2 + arrayOffset) % 4];
+            GameboardModel[r + rSpan][c] = cells[(3 + arrayOffset) % 4];
+            if (IsVert)
+            {
+                GameboardModel[r + 1][c] = new GameboardCell("blank", crd.CardID);
+                GameboardModel[r + 1][c + 1] = new GameboardCell("blank", crd.CardID);
+            }
+            else
+            {
+                GameboardModel[r][c + 1] = new GameboardCell("blank", crd.CardID);
+                GameboardModel[r + 1][c + 1] = new GameboardCell("blank", crd.CardID);
+            }
+            */
         }
 
         /// <summary>
@@ -154,13 +344,13 @@ namespace Crystallo
 
             if (R == -1 || C == -1)
             {
-                nextCard.Visibility = Visibility.Hidden;
+                _nextCard.Visibility = Visibility.Hidden;
                 return;
             }
 
-            UpdateCardPosition(nextCard, R, C);
+            UpdateCardPosition(_nextCard, R, C);
 
-            nextCard.Visibility = Visibility.Visible;
+            _nextCard.Visibility = Visibility.Visible;
         }
 
         /// <summary>
@@ -170,7 +360,7 @@ namespace Crystallo
         /// <param name="e">Information about the action.</param>
         private void HidePreview(object sender, MouseEventArgs e)
         {
-            nextCard.Visibility = Visibility.Hidden;
+            _nextCard.Visibility = Visibility.Hidden;
         }
 
         /// <summary>
@@ -217,13 +407,13 @@ namespace Crystallo
             switch (cardAngle)
             {
                 case 90:
-                    (transX, transY) = (cardHeight, 0);
+                    (transX, transY) = (CardHeight, 0);
                     break;
                 case 180:
-                    (transX, transY) = (cardWidth, cardHeight);
+                    (transX, transY) = (CardWidth, CardHeight);
                     break;
                 case 270:
-                    (transX, transY) = (0, cardWidth);
+                    (transX, transY) = (0, CardWidth);
                     break;
                 default:
                     (transX, transY) = (0, 0);
@@ -236,7 +426,7 @@ namespace Crystallo
             transform.Children.Add(translate);
 
 
-            nextCard.RenderTransform = transform;
+            _nextCard.RenderTransform = transform;
         }
 
         /// <summary>
@@ -249,18 +439,18 @@ namespace Crystallo
         private (int, int) GetCardCornerRC(double inpX, double inpY)
         {
             int C, R;
-            if (isVert) // if vertical orientation
+            if (IsVert) // if vertical orientation
             {
-                C = (int)(inpX - (cardWidth / 2)) / GRIDSIZE;
-                R = (int)(inpY - (cardHeight / 3)) / GRIDSIZE;
+                C = (int)(inpX - (CardWidth / 2)) / GRIDSIZE;
+                R = (int)(inpY - (CardHeight / 2)) / GRIDSIZE;
             }
             else // if horizontal orientation
             {
-                C = (int)(inpX - (cardHeight / 3)) / GRIDSIZE;
-                R = (int)(inpY - (cardWidth / 2)) / GRIDSIZE;
+                C = (int)(inpX - (CardHeight / 2)) / GRIDSIZE;
+                R = (int)(inpY - (CardWidth / 2)) / GRIDSIZE;
             }
-            if (R < 0 || (R > Gameboard.RowDefinitions.Count - 3 && isVert) || (R > Gameboard.RowDefinitions.Count - 2 && !isVert)
-                || C < 0 || (C > Gameboard.ColumnDefinitions.Count - 2 && isVert) || (C > Gameboard.ColumnDefinitions.Count - 3 && !isVert))
+            if (R < 0 || (R > Gameboard.RowDefinitions.Count - 3 && IsVert) || (R > Gameboard.RowDefinitions.Count - 2 && !IsVert)
+                || C < 0 || (C > Gameboard.ColumnDefinitions.Count - 2 && IsVert) || (C > Gameboard.ColumnDefinitions.Count - 3 && !IsVert))
             {
                 return (-1, -1);
             }
